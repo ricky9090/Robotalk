@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:orientation="horizontal"
+            android:background="#55BBDD">
+
+            <ImageView
+                android:id="@+id/window_close"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_x_circle"
+                android:padding="16dp" />
+
+            <TextView
+                android:id="@+id/window_title"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:textColor="@color/white"
+                android:textSize="24sp"
+                tools:text="Hello Smalltalk" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/window_menu"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:background="#EFEFEF"/>
+
+        <FrameLayout
+            android:id="@+id/window_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+    </LinearLayout>
+
+
+</merge>

@@ -11,7 +11,11 @@ public class SmallByteArray extends SmallObject {
 
     public SmallByteArray(SmallObject cl, String text) {
         super(cl, 0);
-        values = text.getBytes();
+        if (text == null) {
+            values = "".getBytes();
+        } else {
+            values = text.getBytes();
+        }
     }
 
     public SmallByteArray() {

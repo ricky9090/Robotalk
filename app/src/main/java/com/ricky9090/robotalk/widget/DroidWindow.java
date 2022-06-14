@@ -1,6 +1,8 @@
 package com.ricky9090.robotalk.widget;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Message;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,6 +21,8 @@ public class DroidWindow extends FrameLayout {
     private ImageView windowClose;
     private LinearLayout windowMenuLinear;
     private FrameLayout windowContent;
+
+    private Handler uiHandler;
 
     public DroidWindow(@NonNull Context context) {
         this(context, null);
@@ -52,5 +56,18 @@ public class DroidWindow extends FrameLayout {
 
     public void setWindowCloseListner(View.OnClickListener listner) {
         windowClose.setOnClickListener(listner);
+    }
+
+    public void setUiHandler(Handler uiHandler) {
+        this.uiHandler = uiHandler;
+    }
+
+    public void onClose() {
+        if (uiHandler != null) {
+            Message msg = Message.obtain();
+            msg.what = 100;
+            msg.obj = this.hashCode();
+            uiHandler.sendMessage(msg);
+        }
     }
 }

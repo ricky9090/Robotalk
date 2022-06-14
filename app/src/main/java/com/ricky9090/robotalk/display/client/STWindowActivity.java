@@ -5,12 +5,14 @@ import android.os.Handler;
 import android.os.Message;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.ricky9090.robotalk.R;
+import com.ricky9090.robotalk.widget.DroidWindow;
 import com.ricky9090.smallworld.SmallWorld;
 
 import java.lang.ref.WeakReference;
@@ -21,7 +23,9 @@ public class STWindowActivity extends AppCompatActivity {
 
     private SwingClientImpl screenClient;
     private SmallWorld smallWorld;
-    private FrameLayout container;
+    private LinearLayout container;
+
+    boolean started = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -38,7 +42,10 @@ public class STWindowActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        smallWorld.start();
+        if (!started) {
+            started = true;
+            smallWorld.start();
+        }
     }
 
     @Override
@@ -48,10 +55,21 @@ public class STWindowActivity extends AppCompatActivity {
     }
 
     public void addWindow(View window) {
-        if (container.getChildCount() > 0) {
+        /*if (container.getChildCount() > 0) {
             container.removeAllViews();
-        }
+        }*/
         container.addView(window);
+    }
+
+    public void removeWindow(int windowId) {
+        int count = container.getChildCount();
+        for (int i = 0; i < count; i++) {
+            View current = container.getChildAt(i);
+            if (current.hashCode() == windowId) {
+                container.removeViewAt(i);
+                break;
+            }
+        }
     }
 
     static class STUIHandler extends Handler {
@@ -72,6 +90,13 @@ public class STWindowActivity extends AppCompatActivity {
             if (msg.what == 99) {
                 View window = (View) msg.obj;
                 stActivity.addWindow(window);
+                if (window instanceof DroidWindow) {
+                    ((DroidWindow) window).setUiHandler(this);
+                }
+                return;
+            } else if (msg.what == 100) {
+                int windowId = (Integer) msg.obj;
+                stActivity.removeWindow(windowId);
                 return;
             }
 

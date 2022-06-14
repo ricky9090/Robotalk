@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Message;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -233,6 +235,7 @@ public class SwingClientImpl extends Thread implements IScreenClient {
             @Override
             public void onClick(View v) {
                 window.getListener().onWindowClosing();
+                androidWindow.onClose();
             }
         });
 
@@ -353,6 +356,22 @@ public class SwingClientImpl extends Thread implements IScreenClient {
                 textField.setSelectedText(selected);
             }
         });
+        androidField.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                textField.setText(androidField.getText().toString());
+            }
+        });
         return androidField;
     }
 
@@ -371,6 +390,22 @@ public class SwingClientImpl extends Thread implements IScreenClient {
             @Override
             public void onSelectedChange(String selected) {
                 textArea.setSelectedText(selected);
+            }
+        });
+        androidTextArea.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                textArea.setText(androidTextArea.getText().toString());
             }
         });
         return androidTextArea;
@@ -407,10 +442,10 @@ public class SwingClientImpl extends Thread implements IScreenClient {
 
     private View buildListView(STListView listView) {
         RecyclerView androidList = new RecyclerView(activityContext);
-        androidList.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        androidList.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 400));
         androidList.setMinimumWidth(150);
         androidList.setMinimumHeight(300);
-        androidList.setBackgroundColor(activityContext.getResources().getColor(R.color.teal_200));
+        androidList.setBackgroundResource(R.drawable.list_background);
 
         DroidListAdapter adapter = new DroidListAdapter(activityContext);
         androidList.setLayoutManager(new LinearLayoutManager(activityContext));
@@ -431,7 +466,7 @@ public class SwingClientImpl extends Thread implements IScreenClient {
 
     private View buildBorderPanel(STWindow window, STBorderPanel borderPanel) {
         DroidBorderPanel androidPanel = new DroidBorderPanel(activityContext);
-        androidPanel.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        androidPanel.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         String windowTag = window.getId() + "";
 
         if (borderPanel.getCenter() != null) {

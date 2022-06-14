@@ -1,5 +1,7 @@
 package com.ricky9090.smallworld.obj;
 
+import com.ricky9090.smallworld.SmallInterpreter;
+
 public class SmallInt extends SmallObject {
 
     public int value;
@@ -11,6 +13,14 @@ public class SmallInt extends SmallObject {
 
     public SmallInt() {
         super();
+    }
+
+    public static SmallInt create(int val) {
+        if ((val >= 0) && (val < 10)) {
+            return SmallInterpreter.smallIntCache[val];
+        } else {
+            return new SmallInt(SmallInterpreter.IntegerClass, val);
+        }
     }
 
     public String toString() {

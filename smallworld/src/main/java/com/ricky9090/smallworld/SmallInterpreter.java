@@ -35,16 +35,16 @@ public class SmallInterpreter {
     public static final int imageFormatVersion = 1;
 
     // --- global constants begin ---
-    public SmallObject nilObject;
-    public SmallObject trueObject;
-    public SmallObject falseObject;
+    public static SmallObject nilObject;
+    public static SmallObject trueObject;
+    public static SmallObject falseObject;
 
-    public SmallInt[] smallIntCache;
+    public static final SmallInt[] smallIntCache = new SmallInt[10];
 
-    public SmallObject ArrayClass;
-    public SmallObject BlockClass;
-    public SmallObject ContextClass;
-    public SmallObject IntegerClass;
+    public static SmallObject ArrayClass;
+    public static SmallObject BlockClass;
+    public static SmallObject ContextClass;
+    public static SmallObject IntegerClass;
     // --- global constants end ---
 
     IScreenService screen;
@@ -164,7 +164,6 @@ public class SmallInterpreter {
             ContextClass = objectList.get(5);
             IntegerClass = objectList.get(6);
 
-            smallIntCache = new SmallInt[10];
             smallIntCache[0] = (SmallInt) objectList.get(7);
             smallIntCache[1] = (SmallInt) objectList.get(8);
             smallIntCache[2] = (SmallInt) objectList.get(9);
@@ -307,15 +306,6 @@ public class SmallInterpreter {
 
     }
 
-    // create a new small integer
-    SmallInt newInteger(int val) {
-        if ((val >= 0) && (val < 10)) {
-            return smallIntCache[val];
-        } else {
-            return new SmallInt(IntegerClass, val);
-        }
-    }
-
     private SmallObject methodLookup(SmallObject receiver,
                                      SmallByteArray messageSelector, SmallObject context,
                                      SmallObject arguments)
@@ -381,11 +371,11 @@ public class SmallInterpreter {
         outerLoop:
         while (true) {
             //System.out.println("enter outer loop");
-            SmallObject method = contextData[0]; // method in context
+            SmallObject method = contextData[SmallConst.CTX.INDEX_METHOD]; // method in context
             byte[] code = ((SmallByteArray) method.data[1]).values; // code pointer
-            int bytePointer = ((SmallInt) contextData[4]).value;
-            SmallObject[] stack = contextData[3].data;
-            int stackTop = ((SmallInt) contextData[5]).value;
+            int bytePointer = ((SmallInt) contextData[SmallConst.CTX.INDEX_BYTE_POINTER]).value;
+            SmallObject[] stack = contextData[SmallConst.CTX.INDEX_STACK].data;
+            int stackTop = ((SmallInt) contextData[SmallConst.CTX.INDEX_STACK_TOP]).value;
             SmallObject returnedValue = null;
             SmallObject temp;
             SmallObject[] tempArray;
@@ -412,7 +402,7 @@ public class SmallInterpreter {
 
                     case 1: // PushInstance
                         if (arguments == null) {
-                            arguments = contextData[1];
+                            arguments = contextData[SmallConst.CTX.INDEX_ARGUMENTS];
                         }
                         if (instanceVariables == null) {
                             instanceVariables = arguments.data[0].data;
@@ -422,14 +412,14 @@ public class SmallInterpreter {
 
                     case 2: // PushArgument
                         if (arguments == null) {
-                            arguments = contextData[1];
+                            arguments = contextData[SmallConst.CTX.INDEX_ARGUMENTS];
                         }
                         stack[stackTop++] = arguments.data[low];
                         break;
 
                     case 3: // PushTemporary
                         if (temporaries == null) {
-                            temporaries = contextData[2].data;
+                            temporaries = contextData[SmallConst.CTX.INDEX_TEMPORARY].data;
                         }
                         stack[stackTop++] = temporaries[low];
                         break;
@@ -475,23 +465,23 @@ public class SmallInterpreter {
                         high = (int) code[bytePointer++] & 0x0FF;
                         returnedValue = new SmallObject(BlockClass, 10);
                         tempArray = returnedValue.data;
-                        tempArray[0] = contextData[0]; // share method
-                        tempArray[1] = contextData[1]; // share arguments
-                        tempArray[2] = contextData[2]; // share temporaries
-                        tempArray[3] = contextData[3]; // stack (later replaced)
-                        tempArray[4] = newInteger(bytePointer); // current byte pointer
+                        tempArray[0] = contextData[SmallConst.CTX.INDEX_METHOD];
+                        tempArray[1] = contextData[SmallConst.CTX.INDEX_ARGUMENTS];
+                        tempArray[2] = contextData[SmallConst.CTX.INDEX_TEMPORARY]; // share temporaries 2
+                        tempArray[3] = contextData[SmallConst.CTX.INDEX_STACK]; // stack (later replaced) 3
+                        tempArray[4] = SmallInt.create(bytePointer); // current byte pointer
                         tempArray[5] = smallIntCache[0]; // stacktop
-                        tempArray[6] = contextData[6]; // previous context
-                        tempArray[7] = newInteger(low); // argument location
+                        tempArray[6] = contextData[SmallConst.CTX.INDEX_PREV_CONTEXT]; // previous context 6
+                        tempArray[7] = SmallInt.create(low); // argument location
                         tempArray[8] = context; // creating context
-                        tempArray[9] = newInteger(bytePointer); // current byte pointer
+                        tempArray[9] = SmallInt.create(bytePointer); // current byte pointer
                         stack[stackTop++] = returnedValue;
                         bytePointer = high;
                         break;
 
                     case 14: // PushClassVariable
                         if (arguments == null) {
-                            arguments = contextData[1];
+                            arguments = contextData[SmallConst.CTX.INDEX_ARGUMENTS];
                         }
                         if (instanceVariables == null) {
                             instanceVariables = arguments.data[0].data;
@@ -501,7 +491,7 @@ public class SmallInterpreter {
 
                     case 6: // AssignInstance
                         if (arguments == null) {
-                            arguments = contextData[1];
+                            arguments = contextData[SmallConst.CTX.INDEX_ARGUMENTS];
                         }
                         if (instanceVariables == null) {
                             instanceVariables = arguments.data[0].data;
@@ -512,7 +502,7 @@ public class SmallInterpreter {
 
                     case 7: // AssignTemporary
                         if (temporaries == null) {
-                            temporaries = contextData[2].data;
+                            temporaries = contextData[SmallConst.CTX.INDEX_TEMPORARY].data;
                         }
                         temporaries[low] = stack[stackTop - 1];
                         break;
@@ -531,9 +521,9 @@ public class SmallInterpreter {
                         arguments = stack[--stackTop];
                         // expand newInteger in line
                         //contextData[5] = newInteger(stackTop);
-                        contextData[5] = (stackTop < 10) ? smallIntCache[stackTop] : new SmallInt(IntegerClass, stackTop);
+                        contextData[SmallConst.CTX.INDEX_STACK_TOP] = SmallInt.create(stackTop);
                         //contextData[4] = newInteger(bytePointer);
-                        contextData[4] = (bytePointer < 10) ? smallIntCache[bytePointer] : new SmallInt(IntegerClass, bytePointer);
+                        contextData[SmallConst.CTX.INDEX_BYTE_POINTER] = SmallInt.create(bytePointer);
                         // now build new context
                         if (literals == null) {
                             literals = method.data[2].data;
@@ -590,7 +580,7 @@ public class SmallInterpreter {
                                     long li = i + (long) j;
                                     if (li != (i + j))
                                         done = false; // overflow
-                                    returnedValue = newInteger(i + j);
+                                    returnedValue = SmallInt.create(i + j);
                                     break;
                             }
                             if (done) {
@@ -604,8 +594,8 @@ public class SmallInterpreter {
                         arguments = new SmallObject(ArrayClass, 2);
                         arguments.data[1] = stack[--stackTop];
                         arguments.data[0] = stack[--stackTop];
-                        contextData[5] = newInteger(stackTop);
-                        contextData[4] = newInteger(bytePointer);
+                        contextData[SmallConst.CTX.INDEX_STACK_TOP] = SmallInt.create(stackTop);
+                        contextData[SmallConst.CTX.INDEX_BYTE_POINTER] = SmallInt.create(bytePointer);
                         SmallByteArray msg = null;
                         switch (low) {
                             case 0:
@@ -649,7 +639,7 @@ public class SmallInterpreter {
                                 } else {
                                     low = returnedValue.data.length;
                                 }
-                                returnedValue = newInteger(low);
+                                returnedValue = SmallInt.create(low);
                                 break;
 
                             case 5: // object at put
@@ -680,13 +670,15 @@ public class SmallInterpreter {
                                         temporaries[high + low--] = stack[--stackTop];
                                     }
                                 }
-                                contextData[5] = newInteger(stackTop);
-                                contextData[4] = newInteger(bytePointer);
+                                contextData[SmallConst.CTX.INDEX_STACK_TOP] =
+                                        SmallInt.create(stackTop);
+                                contextData[SmallConst.CTX.INDEX_BYTE_POINTER] =
+                                        SmallInt.create(bytePointer);
 
                                 SmallObject newContext = new SmallObject(ContextClass, 10);
                                 System.arraycopy(returnedValue.data, 0, newContext.data, 0, 10);
 
-                                newContext.data[6] = contextData[6];
+                                newContext.data[6] = contextData[SmallConst.CTX.INDEX_PREV_CONTEXT];
                                 newContext.data[5] = smallIntCache[0]; // stack top
                                 newContext.data[4] = returnedValue.data[9]; // starting addr
                                 low = newContext.data[3].data.length; //stack size
@@ -698,7 +690,7 @@ public class SmallInterpreter {
 
                             case 9: // read a char from input
                                 try {
-                                    returnedValue = newInteger(System.in.read());
+                                    returnedValue = SmallInt.create(System.in.read());
                                 } catch (IOException e) {
                                     returnedValue = nilObject;
                                 }
@@ -709,7 +701,7 @@ public class SmallInterpreter {
                                 high = ((SmallInt) stack[--stackTop]).value;
                                 long lhigh = ((long) high) + (long) low;
                                 high += low;
-                                if (lhigh == high) returnedValue = newInteger(high);
+                                if (lhigh == high) returnedValue = SmallInt.create(high);
                                 else returnedValue = nilObject;
                             }
                             break;
@@ -718,14 +710,14 @@ public class SmallInterpreter {
                                 low = ((SmallInt) stack[--stackTop]).value;
                                 high = ((SmallInt) stack[--stackTop]).value;
                                 high /= low;
-                                returnedValue = newInteger(high);
+                                returnedValue = SmallInt.create(high);
                                 break;
 
                             case 12: // small integer remainder
                                 low = ((SmallInt) stack[--stackTop]).value;
                                 high = ((SmallInt) stack[--stackTop]).value;
                                 high %= low;
-                                returnedValue = newInteger(high);
+                                returnedValue = SmallInt.create(high);
                                 break;
 
                             case 14: // small int equality
@@ -739,7 +731,7 @@ public class SmallInterpreter {
                                 high = ((SmallInt) stack[--stackTop]).value;
                                 long lhigh = ((long) high) * (long) low;
                                 high *= low;
-                                if (lhigh == high) returnedValue = newInteger(high);
+                                if (lhigh == high) returnedValue = SmallInt.create(high);
                                 else returnedValue = nilObject;
                             }
                             break;
@@ -749,7 +741,7 @@ public class SmallInterpreter {
                                 high = ((SmallInt) stack[--stackTop]).value;
                                 long lhigh = ((long) high) - (long) low;
                                 high -= low;
-                                if (lhigh == high) returnedValue = newInteger(high);
+                                if (lhigh == high) returnedValue = SmallInt.create(high);
                                 else returnedValue = nilObject;
                             }
                             break;
@@ -780,7 +772,7 @@ public class SmallInterpreter {
                                 returnedValue = stack[--stackTop];
                                 SmallByteArray baa = (SmallByteArray) returnedValue;
                                 low = (int) baa.values[low - 1] & 0x0FF;
-                                returnedValue = newInteger(low);
+                                returnedValue = SmallInt.create(low);
                                 break;
 
                             case 22: // string at put
@@ -834,7 +826,7 @@ public class SmallInterpreter {
                                         r = -1;
                                     }
                                 }
-                                returnedValue = newInteger(r);
+                                returnedValue = SmallInt.create(r);
                             }
                             break;
 
@@ -1012,7 +1004,7 @@ public class SmallInterpreter {
 
                             case 57: { // float to int
                                 double a = (Double) ((SmallJavaObject) stack[--stackTop]).value;
-                                returnedValue = newInteger((int) a);
+                                returnedValue = SmallInt.create((int) a);
                             }
                             break;
 
@@ -1240,7 +1232,7 @@ public class SmallInterpreter {
                             case 83: { // get selected index
                                 SmallJavaObject listHolder = (SmallJavaObject) stack[--stackTop];
                                 STListView target = (STListView) listHolder.value;
-                                returnedValue = newInteger(target.getSelectedIndex() + 1);
+                                returnedValue = SmallInt.create(target.getSelectedIndex() + 1);
                             }
                             break;
 
@@ -1457,7 +1449,7 @@ public class SmallInterpreter {
                             break;
 
                             case 119: {  // Millisecond clock
-                                returnedValue = newInteger((int) System.currentTimeMillis());
+                                returnedValue = SmallInt.create((int) System.currentTimeMillis());
                             }
                             break;
 
@@ -1472,20 +1464,20 @@ public class SmallInterpreter {
                         switch (low) {
                             case 1: // self return
                                 if (arguments == null) {
-                                    arguments = contextData[1];
+                                    arguments = contextData[SmallConst.CTX.INDEX_ARGUMENTS];
                                 }
                                 returnedValue = arguments.data[0];
-                                context = contextData[6]; // previous context
+                                context = contextData[SmallConst.CTX.INDEX_PREV_CONTEXT]; // previous context
                                 break innerLoop;
 
                             case 2: // stack return
                                 returnedValue = stack[--stackTop];
-                                context = contextData[6]; // previous context
+                                context = contextData[SmallConst.CTX.INDEX_PREV_CONTEXT]; // previous context
                                 break innerLoop;
 
                             case 3: // block return
                                 returnedValue = stack[--stackTop];
-                                context = contextData[8]; // creating context in block
+                                context = contextData[SmallConst.CTX.INDEX_CREATING_CONTEXT]; // creating context in block
                                 context = context.data[6]; // previous context
                                 break innerLoop;
 
@@ -1524,8 +1516,8 @@ public class SmallInterpreter {
                                 // message selector
                                 // save old context
                                 arguments = stack[--stackTop];
-                                contextData[5] = newInteger(stackTop);
-                                contextData[4] = newInteger(bytePointer);
+                                contextData[SmallConst.CTX.INDEX_STACK_TOP] = SmallInt.create(stackTop);
+                                contextData[SmallConst.CTX.INDEX_BYTE_POINTER] = SmallInt.create(bytePointer);
                                 // now build new context
                                 if (literals == null) {
                                     literals = method.data[2].data;
@@ -1556,10 +1548,10 @@ public class SmallInterpreter {
                 return returnedValue;
             }
             contextData = context.data;
-            stack = contextData[3].data;
-            stackTop = ((SmallInt) contextData[5]).value;
+            stack = contextData[SmallConst.CTX.INDEX_STACK].data;
+            stackTop = ((SmallInt) contextData[SmallConst.CTX.INDEX_STACK_TOP]).value;
             stack[stackTop++] = returnedValue;
-            contextData[5] = newInteger(stackTop);
+            contextData[SmallConst.CTX.INDEX_STACK_TOP] = SmallInt.create(stackTop);
         }
 
     } // end of outer loop
@@ -1586,7 +1578,7 @@ public class SmallInterpreter {
             System.arraycopy(block.data, 0, action.data, 0, 10);
 
             int argLoc = ((SmallInt) action.data[7]).value;
-            action.data[2].data[argLoc] = vm.newInteger(v1);
+            action.data[2].data[argLoc] = SmallInt.create(v1);
         }
 
         public ActionThread(SmallInterpreter vm, SmallObject block, Thread myT, int v1, int v2) {
@@ -1596,8 +1588,8 @@ public class SmallInterpreter {
             System.arraycopy(block.data, 0, action.data, 0, 10);
 
             int argLoc = ((SmallInt) action.data[7]).value;
-            action.data[2].data[argLoc] = vm.newInteger(v1);
-            action.data[2].data[argLoc + 1] = vm.newInteger(v2);
+            action.data[2].data[argLoc] = SmallInt.create(v1);
+            action.data[2].data[argLoc + 1] = SmallInt.create(v2);
         }
 
 
@@ -1605,7 +1597,7 @@ public class SmallInterpreter {
             int stksize = action.data[3].data.length;
             action.data[3] = new SmallObject(interpreter.ArrayClass, stksize); // new stack
             action.data[4] = action.data[9]; // byte pointer
-            action.data[5] = interpreter.newInteger(0); // stack top
+            action.data[5] = SmallInt.create(0); // stack top
             action.data[6] = interpreter.nilObject;
             try {
                 interpreter.execute(action, this, myThread);
@@ -1653,7 +1645,7 @@ public class SmallInterpreter {
             System.arraycopy(block.data, 0, action.data, 0, 10);
 
             int argLoc = ((SmallInt) action.data[7]).value;
-            action.data[2].data[argLoc] = vm.newInteger(v1);
+            action.data[2].data[argLoc] = SmallInt.create(v1);
         }
 
         public ActionBlock(SmallInterpreter vm, SmallObject block, int v1, int v2) {
@@ -1662,8 +1654,8 @@ public class SmallInterpreter {
             System.arraycopy(block.data, 0, action.data, 0, 10);
 
             int argLoc = ((SmallInt) action.data[7]).value;
-            action.data[2].data[argLoc] = vm.newInteger(v1);
-            action.data[2].data[argLoc + 1] = vm.newInteger(v2);
+            action.data[2].data[argLoc] = SmallInt.create(v1);
+            action.data[2].data[argLoc + 1] = SmallInt.create(v2);
         }
 
 
@@ -1671,7 +1663,7 @@ public class SmallInterpreter {
             int stackSize = action.data[3].data.length;
             action.data[3] = new SmallObject(interpreter.ArrayClass, stackSize); // new stack
             action.data[4] = action.data[9]; // byte pointer
-            action.data[5] = interpreter.newInteger(0); // stack top
+            action.data[5] = SmallInt.create(0); // stack top
             action.data[6] = interpreter.nilObject;
             try {
                 interpreter.execute(action, null, null);
@@ -1701,7 +1693,7 @@ public class SmallInterpreter {
 
             if (dataSize >= 8) {
                 int argLoc = ((SmallInt) action.data[7]).value;
-                action.data[2].data[argLoc] = vm.newInteger(v1);
+                action.data[2].data[argLoc] = SmallInt.create(v1);
             }
         }
 
@@ -1713,8 +1705,8 @@ public class SmallInterpreter {
 
             if (dataSize >= 8) {
                 int argLoc = ((SmallInt) action.data[7]).value;
-                action.data[2].data[argLoc] = vm.newInteger(v1);
-                action.data[2].data[argLoc + 1] = vm.newInteger(v2);
+                action.data[2].data[argLoc] = SmallInt.create(v1);
+                action.data[2].data[argLoc + 1] = SmallInt.create(v2);
             }
         }
 
@@ -1723,7 +1715,7 @@ public class SmallInterpreter {
             int stackSize = action.data[3].data.length;
             action.data[3] = new SmallObject(interpreter.ArrayClass, stackSize); // new stack
             action.data[4] = action.data[9]; // byte pointer
-            action.data[5] = interpreter.newInteger(0); // stack top
+            action.data[5] = SmallInt.create(0); // stack top
             action.data[6] = interpreter.nilObject;
             try {
                 interpreter.execute(action, null, null);
